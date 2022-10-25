@@ -127,7 +127,7 @@ func (suite *ByNamesTestSuite) TestAllInitialized() {
 			}: "TCPIngressesList",
 		}), nil)
 
-	sources, err := ByNames(context.TODO(), mockClientGenerator, []string{"service", "ingress", "istio-gateway", "contour-httpproxy", "kong-tcpingress", "fake"}, minimalConfig)
+	sources, err := ByNames(context.TODO(), mockClientGenerator, []string{"service", "ingress", "istio-gateway", "contour-httpproxy", "kong-tcpingress", "f5-virtualserver", "fake"}, minimalConfig)
 	suite.NoError(err, "should not generate errors")
 	suite.Len(sources, 6, "should generate all six sources")
 }
