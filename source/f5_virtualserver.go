@@ -142,7 +142,7 @@ func newVSUnstructuredConverter() (*unstructuredConverter, error) {
 }
 
 func (vs *virtualServerSource) setResourceLabel(virtualServer *VirtualServer, ep *endpoint.Endpoint) {
-	ep.Labels[endpoint.ResourceLabelKey] = fmt.Sprintf("virtualserver/%s/%s", virtualServer.Namespace, virtualServer.Name)
+	ep.Labels[endpoint.ResourceLabelKey] = fmt.Sprintf("f5-virtualserver/%s/%s", virtualServer.Namespace, virtualServer.Name)
 }
 
 // VirtualServer defines the VirtualServer resource.
