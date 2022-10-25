@@ -21,14 +21,14 @@ import (
 	"sigs.k8s.io/external-dns/endpoint"
 )
 
-var virtualServerGVR = schema.GroupVersionResource{
+var f5VirtualServerGVR = schema.GroupVersionResource{
 	Group:    "cis.f5.com",
 	Version:  "v1",
 	Resource: "virtualservers",
 }
 
 // virtualServerSource is an implementation of Source for F5 VirtualServer objects.
-type virtualServerSource struct {
+type f5VirtualServerSource struct {
 	dynamicKubeClient     dynamic.Interface
 	virtualServerInformer informers.GenericInformer
 	kubeClient            kubernetes.Interface
@@ -36,14 +36,14 @@ type virtualServerSource struct {
 	unstructuredConverter *unstructuredConverter
 }
 
-func NewVirtualServerSource(
+func NewF5VirtualServerSource(
 	ctx context.Context,
 	dynamicKubeClient dynamic.Interface,
 	kubeClient kubernetes.Interface,
 	namespace string,
 ) (Source, error) {
 	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicKubeClient, 0, namespace, nil)
-	virtualServerInformer := informerFactory.ForResource(virtualServerGVR)
+	virtualServerInformer := informerFactory.ForResource(f5VirtualServerGVR)
 
 	virtualServerInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
@@ -64,7 +64,7 @@ func NewVirtualServerSource(
 		return nil, errors.Wrapf(err, "failed to setup Unstructured Converter")
 	}
 
-	return &virtualServerSource{
+	return &f5VirtualServerSource{
 		dynamicKubeClient:     dynamicKubeClient,
 		virtualServerInformer: virtualServerInformer,
 		kubeClient:            kubeClient,
@@ -75,7 +75,7 @@ func NewVirtualServerSource(
 
 // Endpoints returns endpoint objects for each host-target combination that should be processed.
 // Retrieves all VirtualServers in the source's namespace(s).
-func (vs *virtualServerSource) Endpoints(ctx context.Context) ([]*endpoint.Endpoint, error) {
+func (vs *f5VirtualServerSource) Endpoints(ctx context.Context) ([]*endpoint.Endpoint, error) {
 	virtualServerObjects, err := vs.virtualServerInformer.Lister().ByNamespace(vs.namespace).List(labels.Everything())
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (vs *virtualServerSource) Endpoints(ctx context.Context) ([]*endpoint.Endpo
 	return endpoints, nil
 }
 
-func (vs *virtualServerSource) AddEventHandler(ctx context.Context, handler func()) {
+func (vs *f5VirtualServerSource) AddEventHandler(ctx context.Context, handler func()) {
 	log.Debug("Adding event handler for VirtualServer")
 
 	vs.virtualServerInformer.Informer().AddEventHandler(eventHandlerFunc(handler))
@@ -133,7 +133,7 @@ func newVSUnstructuredConverter() (*unstructuredConverter, error) {
 	}
 
 	// Add the core types we need
-	uc.scheme.AddKnownTypes(virtualServerGVR.GroupVersion(), &VirtualServer{}, &VirtualServerList{})
+	uc.scheme.AddKnownTypes(f5VirtualServerGVR.GroupVersion(), &VirtualServer{}, &VirtualServerList{})
 	if err := scheme.AddToScheme(uc.scheme); err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func newVSUnstructuredConverter() (*unstructuredConverter, error) {
 	return uc, nil
 }
 
-func (vs *virtualServerSource) setResourceLabel(virtualServer *VirtualServer, ep *endpoint.Endpoint) {
+func (vs *f5VirtualServerSource) setResourceLabel(virtualServer *VirtualServer, ep *endpoint.Endpoint) {
 	ep.Labels[endpoint.ResourceLabelKey] = fmt.Sprintf("f5-virtualserver/%s/%s", virtualServer.Namespace, virtualServer.Name)
 }
 
