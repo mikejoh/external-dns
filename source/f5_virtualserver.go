@@ -99,17 +99,33 @@ func (vs *f5VirtualServerSource) Endpoints(ctx context.Context) ([]*endpoint.End
 	var endpoints []*endpoint.Endpoint
 
 	for _, virtualServer := range virtualServers {
-		ep := &endpoint.Endpoint{
-			Targets: endpoint.Targets{
-				virtualServer.Spec.VirtualServerAddress,
-			},
-			RecordType: "A",
-			DNSName:    virtualServer.Spec.Host,
-			Labels:     endpoint.NewLabels(),
-		}
+		if virtualServer.Spec.VirtualServerAddress != "" {
+			ep := &endpoint.Endpoint{
+				Targets: endpoint.Targets{
+					virtualServer.Spec.VirtualServerAddress,
+				},
+				RecordType: "A",
+				DNSName:    virtualServer.Spec.Host,
+				Labels:     endpoint.NewLabels(),
+			}
 
-		vs.setResourceLabel(virtualServer, ep)
-		endpoints = append(endpoints, ep)
+			vs.setResourceLabel(virtualServer, ep)
+			endpoints = append(endpoints, ep)
+		} else {
+			if virtualServer.Status.VSAddress != "" {
+				ep := &endpoint.Endpoint{
+					Targets: endpoint.Targets{
+						virtualServer.Status.VSAddress,
+					},
+					RecordType: "A",
+					DNSName:    virtualServer.Spec.Host,
+					Labels:     endpoint.NewLabels(),
+				}
+
+				vs.setResourceLabel(virtualServer, ep)
+				endpoints = append(endpoints, ep)
+			}
+		}
 	}
 
 	// Sort endpoints
