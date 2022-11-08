@@ -54,7 +54,7 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 			},
 		},
 		{
-			name: "F5 VirtualServer with host and IP address from the status field",
+			name: "F5 VirtualServer with host set and IP address from the status field",
 			virtualServer: VirtualServer{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: f5VirtualServerGVR.GroupVersion().String(),
