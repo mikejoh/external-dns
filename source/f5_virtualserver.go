@@ -111,20 +111,22 @@ func (vs *f5VirtualServerSource) Endpoints(ctx context.Context) ([]*endpoint.End
 
 			vs.setResourceLabel(virtualServer, ep)
 			endpoints = append(endpoints, ep)
-		} else {
-			if virtualServer.Status.VSAddress != "" {
-				ep := &endpoint.Endpoint{
-					Targets: endpoint.Targets{
-						virtualServer.Status.VSAddress,
-					},
-					RecordType: "A",
-					DNSName:    virtualServer.Spec.Host,
-					Labels:     endpoint.NewLabels(),
-				}
+			continue
+		}
 
-				vs.setResourceLabel(virtualServer, ep)
-				endpoints = append(endpoints, ep)
+		if virtualServer.Status.VSAddress != "" {
+			ep := &endpoint.Endpoint{
+				Targets: endpoint.Targets{
+					virtualServer.Status.VSAddress,
+				},
+				RecordType: "A",
+				DNSName:    virtualServer.Spec.Host,
+				Labels:     endpoint.NewLabels(),
 			}
+
+			vs.setResourceLabel(virtualServer, ep)
+			endpoints = append(endpoints, ep)
+			continue
 		}
 	}
 
@@ -160,6 +162,13 @@ func newVSUnstructuredConverter() (*unstructuredConverter, error) {
 func (vs *f5VirtualServerSource) setResourceLabel(virtualServer *VirtualServer, ep *endpoint.Endpoint) {
 	ep.Labels[endpoint.ResourceLabelKey] = fmt.Sprintf("f5-virtualserver/%s/%s", virtualServer.Namespace, virtualServer.Name)
 }
+
+// The below structs and methods have been copy-pasted from
+// https://github.com/F5Networks/k8s-bigip-ctlr/blob/master/config/apis/cis/v1/types.go
+// since there's no way of importing these at the moment due to go mod,
+// please see this issue for more info: https://github.com/F5Networks/k8s-bigip-ctlr/issues/2153.
+// When and if this issue can be fixed we can instead import these types instead
+// of vendoring them.
 
 // VirtualServer defines the VirtualServer resource.
 type VirtualServer struct {
