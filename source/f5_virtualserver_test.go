@@ -83,6 +83,26 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "F5 VirtualServer with no IP address set",
+			virtualServer: VirtualServer{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: f5VirtualServerGVR.GroupVersion().String(),
+					Kind:       "VirtualServer",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vs",
+					Namespace: defaultF5VirtualServerNamespace,
+				},
+				Spec: VirtualServerSpec{
+					Host: "www.example.com",
+				},
+				Status: VirtualServerStatus{
+					VSAddress: "",
+				},
+			},
+			expected: nil,
+		},
 	}
 
 	for _, tc := range tests {
