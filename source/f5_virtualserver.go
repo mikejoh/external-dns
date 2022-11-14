@@ -42,6 +42,7 @@ func NewF5VirtualServerSource(
 	dynamicKubeClient dynamic.Interface,
 	kubeClient kubernetes.Interface,
 	namespace string,
+	annotationFilter string,
 ) (Source, error) {
 	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicKubeClient, 0, namespace, nil)
 	virtualServerInformer := informerFactory.ForResource(f5VirtualServerGVR)
@@ -62,7 +63,7 @@ func NewF5VirtualServerSource(
 
 	uc, err := newVSUnstructuredConverter()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to setup Unstructured Converter")
+		return nil, errors.Wrapf(err, "failed to setup unstructured converter")
 	}
 
 	return &f5VirtualServerSource{
@@ -70,6 +71,7 @@ func NewF5VirtualServerSource(
 		virtualServerInformer: virtualServerInformer,
 		kubeClient:            kubeClient,
 		namespace:             namespace,
+		annotationFilter:      annotationFilter,
 		unstructuredConverter: uc,
 	}, nil
 }
@@ -95,6 +97,11 @@ func (vs *f5VirtualServerSource) Endpoints(ctx context.Context) ([]*endpoint.End
 			return nil, err
 		}
 		virtualServers = append(virtualServers, virtualServer)
+	}
+
+	virtualServers, err = vs.filterByAnnotations(virtualServers)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to filter VirtualServers")
 	}
 
 	var endpoints []*endpoint.Endpoint
@@ -160,12 +167,13 @@ func newVSUnstructuredConverter() (*unstructuredConverter, error) {
 	return uc, nil
 }
 
-// filterByAnnotations filters a list of TCPIngresses by a given annotation selector.
-func (vs *f5VirtualServerSource) filterByAnnotations(tcpIngresses []*TCPIngress) ([]*TCPIngress, error) {
+// filterByAnnotations filters a list of VirtualServers by a given annotation selector.
+func (vs *f5VirtualServerSource) filterByAnnotations(virtualServers []*VirtualServer) ([]*VirtualServer, error) {
 	labelSelector, err := metav1.ParseToLabelSelector(vs.annotationFilter)
 	if err != nil {
 		return nil, err
 	}
+
 	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
 	if err != nil {
 		return nil, err
@@ -173,18 +181,18 @@ func (vs *f5VirtualServerSource) filterByAnnotations(tcpIngresses []*TCPIngress)
 
 	// empty filter returns original list
 	if selector.Empty() {
-		return tcpIngresses, nil
+		return virtualServers, nil
 	}
 
-	filteredList := []*TCPIngress{}
+	filteredList := []*VirtualServer{}
 
-	for _, tcpIngress := range tcpIngresses {
-		// convert the TCPIngress's annotations to an equivalent label selector
-		annotations := labels.Set(tcpIngress.Annotations)
+	for _, vs := range virtualServers {
+		// convert the VirtualServer's annotations to an equivalent label selector
+		annotations := labels.Set(vs.Annotations)
 
-		// include TCPIngress if its annotations match the selector
+		// include VirtualServer if its annotations match the selector
 		if selector.Matches(annotations) {
-			filteredList = append(filteredList, tcpIngress)
+			filteredList = append(filteredList, vs)
 		}
 	}
 
@@ -195,12 +203,13 @@ func (vs *f5VirtualServerSource) setResourceLabel(virtualServer *VirtualServer, 
 	ep.Labels[endpoint.ResourceLabelKey] = fmt.Sprintf("f5-virtualserver/%s/%s", virtualServer.Namespace, virtualServer.Name)
 }
 
+//
 // The below structs and methods have been copy-pasted from
 // https://github.com/F5Networks/k8s-bigip-ctlr/blob/master/config/apis/cis/v1/types.go
-// since there's no way of importing these at the moment due to go mod,
+// since there's no way of importing these at the moment,
 // please see this issue for more info: https://github.com/F5Networks/k8s-bigip-ctlr/issues/2153.
-// When and if this issue can be fixed we can instead import these types instead
-// of vendoring them.
+// When and if this issue can be fixed we can instead import these types.
+//
 
 // VirtualServer defines the VirtualServer resource.
 type VirtualServer struct {
@@ -240,7 +249,7 @@ type ServiceAddress struct {
 	ArpEnabled         bool   `json:"arpEnabled,omitempty"`
 	ICMPEcho           string `json:"icmpEcho,omitempty"`
 	RouteAdvertisement string `json:"routeAdvertisement,omitempty"`
-	TrafficGroup       string `json:"trafficGroup,omitempty,omitempty"`
+	TrafficGroup       string `json:"trafficGroup,omitempty"`
 	SpanningEnabled    bool   `json:"spanningEnabled,omitempty"`
 }
 

@@ -21,12 +21,14 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name          string
-		virtualServer VirtualServer
-		expected      []*endpoint.Endpoint
+		name             string
+		annotationFilter string
+		virtualServer    VirtualServer
+		expected         []*endpoint.Endpoint
 	}{
 		{
-			name: "F5 VirtualServer with host and virtualServerAddress set",
+			name:             "F5 VirtualServer with host and virtualServerAddress set",
+			annotationFilter: "",
 			virtualServer: VirtualServer{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: f5VirtualServerGVR.GroupVersion().String(),
@@ -54,7 +56,8 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 			},
 		},
 		{
-			name: "F5 VirtualServer with host set and IP address from the status field",
+			name:             "F5 VirtualServer with host set and IP address from the status field",
+			annotationFilter: "",
 			virtualServer: VirtualServer{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: f5VirtualServerGVR.GroupVersion().String(),
@@ -84,7 +87,8 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 			},
 		},
 		{
-			name: "F5 VirtualServer with no IP address set",
+			name:             "F5 VirtualServer with no IP address set",
+			annotationFilter: "",
 			virtualServer: VirtualServer{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: f5VirtualServerGVR.GroupVersion().String(),
@@ -99,6 +103,60 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 				},
 				Status: VirtualServerStatus{
 					VSAddress: "",
+				},
+			},
+			expected: nil,
+		},
+		{
+			name:             "F5 VirtualServer with matching annotation",
+			annotationFilter: "foo=bar",
+			virtualServer: VirtualServer{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: f5VirtualServerGVR.GroupVersion().String(),
+					Kind:       "VirtualServer",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vs",
+					Namespace: defaultF5VirtualServerNamespace,
+					Annotations: map[string]string{
+						"foo": "bar",
+					},
+				},
+				Spec: VirtualServerSpec{
+					Host:                 "www.example.com",
+					VirtualServerAddress: "192.168.1.100",
+				},
+			},
+			expected: []*endpoint.Endpoint{
+				{
+					DNSName:    "www.example.com",
+					Targets:    []string{"192.168.1.100"},
+					RecordType: endpoint.RecordTypeA,
+					RecordTTL:  0,
+					Labels: endpoint.Labels{
+						"resource": "f5-virtualserver/virtualserver/test-vs",
+					},
+				},
+			},
+		},
+		{
+			name:             "F5 VirtualServer with non-matching annotation",
+			annotationFilter: "foo=bar",
+			virtualServer: VirtualServer{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: f5VirtualServerGVR.GroupVersion().String(),
+					Kind:       "VirtualServer",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vs",
+					Namespace: defaultF5VirtualServerNamespace,
+					Annotations: map[string]string{
+						"bar": "foo",
+					},
+				},
+				Spec: VirtualServerSpec{
+					Host:                 "www.example.com",
+					VirtualServerAddress: "192.168.1.100",
 				},
 			},
 			expected: nil,
@@ -122,7 +180,7 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 			_, err = fakeDynamicClient.Resource(f5VirtualServerGVR).Namespace(defaultF5VirtualServerNamespace).Create(context.Background(), &virtualServer, metav1.CreateOptions{})
 			assert.NoError(t, err)
 
-			source, err := NewF5VirtualServerSource(context.TODO(), fakeDynamicClient, fakeKubernetesClient, defaultF5VirtualServerNamespace)
+			source, err := NewF5VirtualServerSource(context.TODO(), fakeDynamicClient, fakeKubernetesClient, defaultF5VirtualServerNamespace, tc.annotationFilter)
 			require.NoError(t, err)
 			assert.NotNil(t, source)
 

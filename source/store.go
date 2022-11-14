@@ -339,8 +339,7 @@ func BuildWithConfig(ctx context.Context, source string, p ClientGenerator, cfg 
 		if err != nil {
 			return nil, err
 		}
-		return NewF5VirtualServerSource(ctx, dynamicClient, kubernetesClient, cfg.Namespace)
-
+		return NewF5VirtualServerSource(ctx, dynamicClient, kubernetesClient, cfg.Namespace, cfg.AnnotationFilter)
 	}
 
 	return nil, ErrSourceNotFound
