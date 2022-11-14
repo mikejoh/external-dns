@@ -32,6 +32,7 @@ type f5VirtualServerSource struct {
 	dynamicKubeClient     dynamic.Interface
 	virtualServerInformer informers.GenericInformer
 	kubeClient            kubernetes.Interface
+	annotationFilter      string
 	namespace             string
 	unstructuredConverter *unstructuredConverter
 }
@@ -157,6 +158,37 @@ func newVSUnstructuredConverter() (*unstructuredConverter, error) {
 	}
 
 	return uc, nil
+}
+
+// filterByAnnotations filters a list of TCPIngresses by a given annotation selector.
+func (vs *f5VirtualServerSource) filterByAnnotations(tcpIngresses []*TCPIngress) ([]*TCPIngress, error) {
+	labelSelector, err := metav1.ParseToLabelSelector(vs.annotationFilter)
+	if err != nil {
+		return nil, err
+	}
+	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
+	if err != nil {
+		return nil, err
+	}
+
+	// empty filter returns original list
+	if selector.Empty() {
+		return tcpIngresses, nil
+	}
+
+	filteredList := []*TCPIngress{}
+
+	for _, tcpIngress := range tcpIngresses {
+		// convert the TCPIngress's annotations to an equivalent label selector
+		annotations := labels.Set(tcpIngress.Annotations)
+
+		// include TCPIngress if its annotations match the selector
+		if selector.Matches(annotations) {
+			filteredList = append(filteredList, tcpIngress)
+		}
+	}
+
+	return filteredList, nil
 }
 
 func (vs *f5VirtualServerSource) setResourceLabel(virtualServer *VirtualServer, ep *endpoint.Endpoint) {
