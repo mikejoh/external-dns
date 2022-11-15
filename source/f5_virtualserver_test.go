@@ -108,7 +108,7 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name:             "F5 VirtualServer with matching annotation",
+			name:             "F5 VirtualServer with matching annotation filter",
 			annotationFilter: "foo=bar",
 			virtualServer: VirtualServer{
 				TypeMeta: metav1.TypeMeta{
@@ -140,7 +140,7 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 			},
 		},
 		{
-			name:             "F5 VirtualServer with non-matching annotation",
+			name:             "F5 VirtualServer with non-matching annotation filter",
 			annotationFilter: "foo=bar",
 			virtualServer: VirtualServer{
 				TypeMeta: metav1.TypeMeta{
