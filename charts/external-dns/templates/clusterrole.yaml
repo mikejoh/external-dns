@@ -77,7 +77,7 @@ rules:
 {{- end }}
 {{- if has "f5-virtualserver" .Values.sources }}
   - apiGroups: ["cis.f5.com"]
-    resources: ["VirtualServer"]
+    resources: ["virtualservers"]
     verbs: ["get","watch","list"]
 {{- end }}
 {{- if has "skipper-routegroup" .Values.sources }}
