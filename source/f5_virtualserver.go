@@ -128,6 +128,11 @@ func (vs *f5VirtualServerSource) endpointsFromVirtualServers(virtualServers []*V
 	var endpoints []*endpoint.Endpoint
 
 	for _, virtualServer := range virtualServers {
+		ttl, err := getTTLFromAnnotations(virtualServer.Annotations)
+		if err != nil {
+			return nil, err
+		}
+
 		if virtualServer.Spec.VirtualServerAddress != "" {
 			ep := &endpoint.Endpoint{
 				Targets: endpoint.Targets{
@@ -136,6 +141,7 @@ func (vs *f5VirtualServerSource) endpointsFromVirtualServers(virtualServers []*V
 				RecordType: "A",
 				DNSName:    virtualServer.Spec.Host,
 				Labels:     endpoint.NewLabels(),
+				RecordTTL:  ttl,
 			}
 
 			vs.setResourceLabel(virtualServer, ep)
@@ -151,6 +157,7 @@ func (vs *f5VirtualServerSource) endpointsFromVirtualServers(virtualServers []*V
 				RecordType: "A",
 				DNSName:    virtualServer.Spec.Host,
 				Labels:     endpoint.NewLabels(),
+				RecordTTL:  ttl,
 			}
 
 			vs.setResourceLabel(virtualServer, ep)
@@ -159,6 +166,7 @@ func (vs *f5VirtualServerSource) endpointsFromVirtualServers(virtualServers []*V
 		}
 
 	}
+
 	return endpoints, nil
 }
 
