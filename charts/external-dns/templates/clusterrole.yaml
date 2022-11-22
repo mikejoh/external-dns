@@ -75,11 +75,6 @@ rules:
     resources: ["routes"]
     verbs: ["get","watch","list"]
 {{- end }}
-{{- if has "f5-virtualserver" .Values.sources }}
-  - apiGroups: ["cis.f5.com"]
-    resources: ["virtualservers"]
-    verbs: ["get","watch","list"]
-{{- end }}
 {{- if has "skipper-routegroup" .Values.sources }}
   - apiGroups: ["zalando.org"]
     resources: ["routegroups"]
