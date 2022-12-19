@@ -29,6 +29,8 @@ import (
 	fakeDynamic "k8s.io/client-go/dynamic/fake"
 	fakeKube "k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/external-dns/endpoint"
+
+	f5 "github.com/F5Networks/k8s-bigip-ctlr/v2/config/apis/cis/v1"
 )
 
 const defaultF5VirtualServerNamespace = "virtualserver"
@@ -39,13 +41,13 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 	tests := []struct {
 		name             string
 		annotationFilter string
-		virtualServer    VirtualServer
+		virtualServer    f5.VirtualServer
 		expected         []*endpoint.Endpoint
 	}{
 		{
 			name:             "F5 VirtualServer with host and virtualServerAddress set",
 			annotationFilter: "",
-			virtualServer: VirtualServer{
+			virtualServer: f5.VirtualServer{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: f5VirtualServerGVR.GroupVersion().String(),
 					Kind:       "VirtualServer",
@@ -54,7 +56,7 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 					Name:      "test-vs",
 					Namespace: defaultF5VirtualServerNamespace,
 				},
-				Spec: VirtualServerSpec{
+				Spec: f5.VirtualServerSpec{
 					Host:                 "www.example.com",
 					VirtualServerAddress: "192.168.1.100",
 				},
@@ -74,7 +76,7 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 		{
 			name:             "F5 VirtualServer with host set and IP address from the status field",
 			annotationFilter: "",
-			virtualServer: VirtualServer{
+			virtualServer: f5.VirtualServer{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: f5VirtualServerGVR.GroupVersion().String(),
 					Kind:       "VirtualServer",
@@ -83,10 +85,10 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 					Name:      "test-vs",
 					Namespace: defaultF5VirtualServerNamespace,
 				},
-				Spec: VirtualServerSpec{
+				Spec: f5.VirtualServerSpec{
 					Host: "www.example.com",
 				},
-				Status: VirtualServerStatus{
+				Status: f5.VirtualServerStatus{
 					VSAddress: "192.168.1.100",
 				},
 			},
@@ -105,7 +107,7 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 		{
 			name:             "F5 VirtualServer with no IP address set",
 			annotationFilter: "",
-			virtualServer: VirtualServer{
+			virtualServer: f5.VirtualServer{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: f5VirtualServerGVR.GroupVersion().String(),
 					Kind:       "VirtualServer",
@@ -114,10 +116,10 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 					Name:      "test-vs",
 					Namespace: defaultF5VirtualServerNamespace,
 				},
-				Spec: VirtualServerSpec{
+				Spec: f5.VirtualServerSpec{
 					Host: "www.example.com",
 				},
-				Status: VirtualServerStatus{
+				Status: f5.VirtualServerStatus{
 					VSAddress: "",
 				},
 			},
@@ -126,7 +128,7 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 		{
 			name:             "F5 VirtualServer with matching annotation filter",
 			annotationFilter: "foo=bar",
-			virtualServer: VirtualServer{
+			virtualServer: f5.VirtualServer{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: f5VirtualServerGVR.GroupVersion().String(),
 					Kind:       "VirtualServer",
@@ -138,7 +140,7 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 						"foo": "bar",
 					},
 				},
-				Spec: VirtualServerSpec{
+				Spec: f5.VirtualServerSpec{
 					Host:                 "www.example.com",
 					VirtualServerAddress: "192.168.1.100",
 				},
@@ -158,7 +160,7 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 		{
 			name:             "F5 VirtualServer with non-matching annotation filter",
 			annotationFilter: "foo=bar",
-			virtualServer: VirtualServer{
+			virtualServer: f5.VirtualServer{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: f5VirtualServerGVR.GroupVersion().String(),
 					Kind:       "VirtualServer",
@@ -170,7 +172,7 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 						"bar": "foo",
 					},
 				},
-				Spec: VirtualServerSpec{
+				Spec: f5.VirtualServerSpec{
 					Host:                 "www.example.com",
 					VirtualServerAddress: "192.168.1.100",
 				},
@@ -179,7 +181,7 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 		},
 		{
 			name: "F5 VirtualServer TTL annotation",
-			virtualServer: VirtualServer{
+			virtualServer: f5.VirtualServer{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: f5VirtualServerGVR.GroupVersion().String(),
 					Kind:       "VirtualServer",
@@ -191,7 +193,7 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 						"external-dns.alpha.kubernetes.io/ttl": "600",
 					},
 				},
-				Spec: VirtualServerSpec{
+				Spec: f5.VirtualServerSpec{
 					Host:                 "www.example.com",
 					VirtualServerAddress: "192.168.1.100",
 				},
@@ -214,7 +216,7 @@ func TestF5VirtualServerEndpoints(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			fakeKubernetesClient := fakeKube.NewSimpleClientset()
 			scheme := runtime.NewScheme()
-			scheme.AddKnownTypes(f5VirtualServerGVR.GroupVersion(), &VirtualServer{}, &VirtualServerList{})
+			scheme.AddKnownTypes(f5VirtualServerGVR.GroupVersion(), &f5.VirtualServer{}, &f5.VirtualServerList{})
 			fakeDynamicClient := fakeDynamic.NewSimpleDynamicClient(scheme)
 
 			virtualServer := unstructured.Unstructured{}
