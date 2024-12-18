@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -147,6 +148,12 @@ func (vs *f5VirtualServerSource) endpointsFromVirtualServers(virtualServers []*f
 	var endpoints []*endpoint.Endpoint
 
 	for _, virtualServer := range virtualServers {
+		if strings.ToLower(virtualServer.Status.Status) != "ok" || strings.ToLower(virtualServer.Status.VSAddress) == "none" || virtualServer.Status.VSAddress == "" {
+			log.Warningf("Could not create an endpoint for VirtualServer %s/%s, skipping.. vsStatus=%s vsAddress=%s vsError=%s",
+				virtualServer.Namespace, virtualServer.Name, virtualServer.Status.Status, virtualServer.Status.VSAddress, virtualServer.Status.Error)
+			continue
+		}
+
 		resource := fmt.Sprintf("f5-virtualserver/%s/%s", virtualServer.Namespace, virtualServer.Name)
 
 		ttl := getTTLFromAnnotations(virtualServer.Annotations, resource)
@@ -155,6 +162,7 @@ func (vs *f5VirtualServerSource) endpointsFromVirtualServers(virtualServers []*f
 		if len(targets) == 0 && virtualServer.Spec.VirtualServerAddress != "" {
 			targets = append(targets, virtualServer.Spec.VirtualServerAddress)
 		}
+
 		if len(targets) == 0 && virtualServer.Status.VSAddress != "" {
 			targets = append(targets, virtualServer.Status.VSAddress)
 		}
