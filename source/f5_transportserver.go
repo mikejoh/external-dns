@@ -214,10 +214,6 @@ func (ts *f5TransportServerSource) filterByAnnotations(transportServers []*f5.Tr
 }
 
 func isTransportServerReady(vs *f5.TransportServer) bool {
-	if strings.ToLower(vs.Status.Status) != "ok" {
-		return false
-	}
-
 	normalizedAddress := strings.ToLower(vs.Status.VSAddress)
 	return normalizedAddress != "none" && normalizedAddress != ""
 }
